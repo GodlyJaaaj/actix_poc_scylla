@@ -1,0 +1,12 @@
+[package]
+name = "actix_poc_scylla"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.10.2"
+diesel = { version = "2.2.8", features = ["postgres_backend", "postgres", "uuid", "r2d2"] }
+dotenvy = "0.15.7"
+uuid = "1.15.1"
+serde = { version = "1.0.219", features = ["derive"] }
+log = "0.4.26"
