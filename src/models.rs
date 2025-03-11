@@ -1,7 +1,7 @@
+use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::Serialize;
 use uuid::Uuid;
-use chrono::NaiveDateTime;
 
 #[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = crate::schema::users)]

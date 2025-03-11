@@ -214,7 +214,6 @@ dependencies = [
  "diesel",
  "dotenvy",
  "env_logger",
- "rand 0.9.0",
  "serde",
  "utoipa",
  "utoipa-swagger-ui",

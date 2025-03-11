@@ -8,7 +8,9 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::result::{DatabaseErrorKind, Error};
-use diesel::{insert_into, ExpressionMethods, Insertable, PgConnection, RunQueryDsl, SelectableHelper};
+use diesel::{
+    insert_into, ExpressionMethods, Insertable, PgConnection, RunQueryDsl, SelectableHelper,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -42,13 +44,17 @@ async fn register(
     mut info: web::Json<NewUserQuery>,
     db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> impl Responder {
-    let mut conn = db.get().map_err(
-        |e| HttpResponse::InternalServerError().body(format!("Diesel error occurred getting connection: {}", e)),
-    ).unwrap();
+    let mut conn = db
+        .get()
+        .map_err(|e| {
+            HttpResponse::InternalServerError()
+                .body(format!("Diesel error occurred getting connection: {}", e))
+        })
+        .unwrap();
 
-    let hashed_password = hash(&info.password, DEFAULT_COST).map_err(
-        |e| HttpResponse::InternalServerError().body(e.to_string()),
-    ).unwrap();
+    let hashed_password = hash(&info.password, DEFAULT_COST)
+        .map_err(|e| HttpResponse::InternalServerError().body(e.to_string()))
+        .unwrap();
 
     info.password = hashed_password.to_string();
 
@@ -63,10 +69,13 @@ async fn register(
                 uuid: user.id.to_string(),
                 name: user.name,
                 email: user.email,
-                created_at: user.created_at.unwrap_or(NaiveDateTime::default()).to_string(),
+                created_at: user
+                    .created_at
+                    .unwrap_or(NaiveDateTime::default())
+                    .to_string(),
             };
             HttpResponse::Created().json(response)
-        },
+        }
         Err(Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
             HttpResponse::Conflict().body("User already with this email already exists")
         }
@@ -84,6 +93,7 @@ struct LoginQuery {
 
 #[utoipa::path(
     context_path = "/api/auth",
+    request_body = LoginQuery,
     responses(
             (status = 201, description = "Logged in successfully", body = String),
     )
@@ -94,11 +104,17 @@ async fn login(
     session: Session,
     db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> impl Responder {
-    let mut conn = db.get().map_err(
-        |e| HttpResponse::InternalServerError().body(format!("Diesel error occurred getting connection: {}", e)),
-    ).unwrap();
+    let mut conn = db
+        .get()
+        .map_err(|e| {
+            HttpResponse::InternalServerError()
+                .body(format!("Diesel error occurred getting connection: {}", e))
+        })
+        .unwrap();
 
-    let user = users.filter(email.eq(&login_query.email)).first::<User>(&mut conn);
+    let user = users
+        .filter(email.eq(&login_query.email))
+        .first::<User>(&mut conn);
 
     if let Err(_) = user {
         return HttpResponse::Unauthorized().body("Invalid email");

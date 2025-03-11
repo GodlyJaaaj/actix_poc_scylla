@@ -3,6 +3,9 @@ pub mod models;
 pub mod schema;
 
 use crate::api::UserApi;
+use actix_session::storage::RedisSessionStore;
+use actix_session::SessionMiddleware;
+use actix_web::cookie::Key;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use diesel::prelude::*;
@@ -11,10 +14,7 @@ use dotenvy::dotenv;
 use env_logger::Env;
 use std::env;
 use std::net::SocketAddrV4;
-use actix_session::SessionMiddleware;
-use actix_session::storage::RedisSessionStore;
-use actix_web::cookie::Key;
-use utoipa::{OpenApi};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
 
 pub fn get_connection_pool() -> Pool<ConnectionManager<PgConnection>> {
@@ -44,12 +44,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .wrap(
-                SessionMiddleware::new(
-                    storage.clone(),
-                    Key::from(&[0; 64])
-                )
-            )
+            .wrap(SessionMiddleware::new(storage.clone(), Key::generate()))
             .service(
                 web::scope("/api/auth")
                     .app_data(web::Data::new(pool.clone()))
