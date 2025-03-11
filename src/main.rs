@@ -1,20 +1,21 @@
+pub mod api;
 pub mod models;
 pub mod schema;
 
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
-use diesel::dsl::insert_into;
+use crate::api::UserApi;
+use actix_web::middleware::Logger;
+use actix_web::{web, App, HttpResponse, HttpServer};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use dotenvy::dotenv;
-use schema::users::dsl::*;
-use serde::Deserialize;
-use std::env;
-use std::net::{Ipv4Addr, SocketAddrV4};
-use actix_web::middleware::Logger;
-use diesel::result::Error;
 use env_logger::Env;
-use log::info;
-use crate::models::User;
+use std::env;
+use std::net::SocketAddrV4;
+use actix_session::SessionMiddleware;
+use actix_session::storage::RedisSessionStore;
+use actix_web::cookie::Key;
+use utoipa::{OpenApi};
+use utoipa_swagger_ui::{SwaggerUi, Url};
 
 pub fn get_connection_pool() -> Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();
@@ -28,52 +29,38 @@ pub fn get_connection_pool() -> Pool<ConnectionManager<PgConnection>> {
     pool
 }
 
-#[derive(Deserialize, Insertable, Debug, Queryable)]
-#[diesel(table_name = schema::users)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct NewUser {
-    name: String,
-    email: String
-}
-
-#[post("/register")]
-async fn register(info: web::Json<NewUser>, db: web::Data<Pool<ConnectionManager<PgConnection>>>) -> impl Responder {
-    let mut conn = db.get().expect("Couldn't get DB connection from pool");
-
-    // check if already exists
-    let check = users.filter(email.eq(&info.email)).select(User::as_select()).first(&mut conn);
-    match check {
-        Ok(_user) => {
-            HttpResponse::BadRequest().json("User with this email already exists")
-        }
-        Err(Error::NotFound) => {
-            let inserted_user =
-                insert_into(users).values(&info.into_inner()).execute(&mut conn);
-
-            match inserted_user {
-                Ok(user) => HttpResponse::Created().json(user),
-                Err(_) => HttpResponse::InternalServerError().json("Error creating user"),
-            }
-        }
-        Err(_) => HttpResponse::InternalServerError().json("Database error"),
-    }
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    let socket = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8080);
+    let socket = SocketAddrV4::new("127.0.0.1".parse().unwrap(), 8080);
 
     eprintln!("Listening on : http://{:?}", socket);
+    let storage = RedisSessionStore::new("redis://127.0.0.1:6379")
+        .await
+        .unwrap();
 
     let pool = get_connection_pool();
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .service(web::scope("/api/auth")
-                .app_data(web::Data::new(pool.clone()))
-                .service(register))
+            .wrap(
+                SessionMiddleware::new(
+                    storage.clone(),
+                    Key::from(&[0; 64])
+                )
+            )
+            .service(
+                web::scope("/api/auth")
+                    .app_data(web::Data::new(pool.clone()))
+                    .service(crate::api::user::register)
+                    .service(crate::api::user::login),
+            )
+            .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
+                Url::new("user-api", "/api-docs/user-api.json"),
+                UserApi::openapi(),
+            )]))
+            .default_service(web::route().to(|| HttpResponse::NotFound()))
     })
     .bind(socket)?
     .run()
