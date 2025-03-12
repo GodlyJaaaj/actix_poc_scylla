@@ -7,6 +7,6 @@ CREATE TABLE users (
                 role VARCHAR(10) NOT NULL DEFAULT 'user',
                 phone VARCHAR(20),
                 activated BOOLEAN DEFAULT FALSE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

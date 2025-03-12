@@ -14,6 +14,6 @@ pub struct User {
     pub role: String,
     pub phone: Option<String>,
     pub activated: bool,
-    pub created_at: Option<NaiveDateTime>,
-    pub updated_at: Option<NaiveDateTime>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }

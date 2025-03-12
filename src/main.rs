@@ -3,6 +3,7 @@ pub mod models;
 pub mod schema;
 
 use crate::api::UserApi;
+use actix_identity::IdentityMiddleware;
 use actix_session::storage::RedisSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web::cookie::Key;
@@ -14,7 +15,6 @@ use dotenvy::dotenv;
 use env_logger::Env;
 use std::env;
 use std::net::SocketAddrV4;
-use actix_identity::IdentityMiddleware;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
 
@@ -54,7 +54,7 @@ async fn main() -> std::io::Result<()> {
                     .app_data(web::Data::new(pool.clone()))
                     .service(crate::api::user::register)
                     .service(crate::api::user::login)
-                    .service(crate::api::user::logout),
+                    .service(crate::api::user::logout)
             )
             .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
                 Url::new("user-api", "/api-docs/user-api.json"),

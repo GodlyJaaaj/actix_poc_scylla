@@ -14,7 +14,7 @@ diesel::table! {
         #[max_length = 20]
         phone -> Nullable<Varchar>,
         activated -> Bool,
-        created_at -> Nullable<Timestamp>,
-        updated_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }

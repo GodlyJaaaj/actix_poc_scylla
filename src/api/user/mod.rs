@@ -1,6 +1,5 @@
-use crate::models::User;
 use crate::schema::users::dsl::users;
-use crate::schema::users::email;
+use crate::schema::users::{email, id, password};
 use actix_identity::Identity;
 use actix_web::{post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -13,35 +12,39 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 #[derive(Deserialize, Insertable, ToSchema, Debug)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-struct NewUserQuery {
+struct RegisterQuery {
     name: String,
     email: String,
     password: String,
 }
 
-#[derive(Debug, ToSchema, Serialize)]
-struct NewUserResponse {
-    uuid: String,
+#[derive(Queryable, Selectable, Serialize, ToSchema)]
+#[diesel(table_name = crate::schema::users)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct RegisterResponse {
+    id: Uuid,
     name: String,
     email: String,
-    created_at: String,
+    created_at: NaiveDateTime,
 }
 
 #[utoipa::path(
     context_path = "/api/auth",
-    request_body = NewUserQuery,
+    request_body = RegisterQuery,
+    tags=["Auth"],
     responses(
-            (status = 201, description = "User created successfully", body = NewUserResponse),
+            (status = 201, description = "User created successfully", body = RegisterResponse),
             (status = 409, description = "User already exists"),
     )
 )]
 #[post("/register")]
 async fn register(
-    mut info: web::Json<NewUserQuery>,
+    mut info: web::Json<RegisterQuery>,
     db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> impl Responder {
     let mut conn = db
@@ -60,21 +63,12 @@ async fn register(
 
     let inserted_user = insert_into(users)
         .values(&info.into_inner())
-        .returning(User::as_returning())
+        .returning(RegisterResponse::as_returning())
         .get_result(&mut conn);
 
     match inserted_user {
         Ok(user) => {
-            let response = NewUserResponse {
-                uuid: user.id.to_string(),
-                name: user.name,
-                email: user.email,
-                created_at: user
-                    .created_at
-                    .unwrap_or(NaiveDateTime::default())
-                    .to_string(),
-            };
-            HttpResponse::Created().json(response)
+            HttpResponse::Created().json(user)
         }
         Err(Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
             HttpResponse::Conflict().body("User already with this email already exists")
@@ -94,8 +88,11 @@ struct LoginQuery {
 #[utoipa::path(
     context_path = "/api/auth",
     request_body = LoginQuery,
+    tags=["Auth"],
     responses(
-        (status = 200, description = "Logged in successfully", body = String),
+        (status = 200, description = "Logged in successfully", headers(
+            ("Set-Cookie", description="Set session cookie")
+        )),
         (status = 401, description = "Invalid mail / password"),
         (status = 409, description = "Already logged in"),
     )
@@ -119,32 +116,45 @@ async fn login(
         })
         .unwrap();
 
+    #[derive(Queryable, Selectable)]
+    #[diesel(table_name = crate::schema::users)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct PartialUser {
+        pub id: Uuid,
+        pub password: String,
+    }
+
     let user = users
         .filter(email.eq(&login_query.email))
-        .first::<User>(&mut conn);
+        .select((id, password))
+        .first::<PartialUser>(&mut conn);
 
     if let Err(_) = user {
         return HttpResponse::Unauthorized().body("Invalid email");
     }
 
-    let user = user.unwrap();
+    let partial_user = user.unwrap();
 
-    if let Err(_) = verify(&login_query.password, &user.password) {
-        println!("{} {}", &user.password, login_query.password);
+    if let Err(_) = verify(&login_query.password, &partial_user.password) {
         return HttpResponse::Unauthorized().body("Invalid password");
     }
 
-    Identity::login(&request.extensions(), user.id.into()).unwrap();
+    Identity::login(&request.extensions(), partial_user.id.into()).unwrap();
     HttpResponse::Ok().body("Logged in")
 }
 
-
-// TODO
+#[utoipa::path(
+    context_path = "/api/auth",
+    tags=["Auth"],
+    responses(
+        (status = 200, description = "Logged out successfully", headers(
+            ("Set-Cookie", description="will expires the session cookie")
+        )),
+        (status = 401, description = "Already logged out"),
+    )
+)]
 #[post("/logout")]
-async fn logout(
-    user: Identity,
-) -> impl Responder {
+async fn logout(user: Identity) -> impl Responder {
     user.logout();
     HttpResponse::Ok().body("Logged out")
 }
-
