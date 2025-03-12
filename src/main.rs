@@ -14,6 +14,7 @@ use dotenvy::dotenv;
 use env_logger::Env;
 use std::env;
 use std::net::SocketAddrV4;
+use actix_identity::IdentityMiddleware;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Url};
 
@@ -40,16 +41,20 @@ async fn main() -> std::io::Result<()> {
         .await
         .unwrap();
 
+    let key = Key::generate();
+
     let pool = get_connection_pool();
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .wrap(SessionMiddleware::new(storage.clone(), Key::generate()))
+            .wrap(IdentityMiddleware::default())
+            .wrap(SessionMiddleware::new(storage.clone(), key.clone()))
             .service(
                 web::scope("/api/auth")
                     .app_data(web::Data::new(pool.clone()))
                     .service(crate::api::user::register)
-                    .service(crate::api::user::login),
+                    .service(crate::api::user::login)
+                    .service(crate::api::user::logout),
             )
             .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
                 Url::new("user-api", "/api-docs/user-api.json"),

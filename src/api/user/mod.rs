@@ -1,8 +1,8 @@
 use crate::models::User;
 use crate::schema::users::dsl::users;
 use crate::schema::users::email;
-use actix_session::Session;
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_identity::Identity;
+use actix_web::{post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -95,15 +95,22 @@ struct LoginQuery {
     context_path = "/api/auth",
     request_body = LoginQuery,
     responses(
-            (status = 201, description = "Logged in successfully", body = String),
+        (status = 200, description = "Logged in successfully", body = String),
+        (status = 401, description = "Invalid mail / password"),
+        (status = 409, description = "Already logged in"),
     )
 )]
 #[post("/login")]
 async fn login(
+    user: Option<Identity>,
     login_query: web::Json<LoginQuery>,
-    session: Session,
     db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+    request: HttpRequest,
 ) -> impl Responder {
+    if let Some(_) = user {
+        return HttpResponse::Conflict().body("Already logged in");
+    }
+
     let mut conn = db
         .get()
         .map_err(|e| {
@@ -127,7 +134,17 @@ async fn login(
         return HttpResponse::Unauthorized().body("Invalid password");
     }
 
-    session.insert("user_id", user.id.to_string()).unwrap();
-
+    Identity::login(&request.extensions(), user.id.into()).unwrap();
     HttpResponse::Ok().body("Logged in")
 }
+
+
+// TODO
+#[post("/logout")]
+async fn logout(
+    user: Identity,
+) -> impl Responder {
+    user.logout();
+    HttpResponse::Ok().body("Logged out")
+}
+
