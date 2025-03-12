@@ -55,6 +55,7 @@ async fn main() -> std::io::Result<()> {
                     .service(crate::api::user::register)
                     .service(crate::api::user::login)
                     .service(crate::api::user::logout)
+                    .service(crate::api::user::me),
             )
             .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
                 Url::new("user-api", "/api-docs/user-api.json"),

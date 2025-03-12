@@ -1,7 +1,8 @@
+use crate::models::User;
 use crate::schema::users::dsl::users;
 use crate::schema::users::{email, id, password};
 use actix_identity::Identity;
-use actix_web::{post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -18,8 +19,13 @@ use uuid::Uuid;
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 struct RegisterQuery {
+    #[schema(example = "John Doe")]
     name: String,
+
+    #[schema(example = "john.doe@gmail.com")]
     email: String,
+
+    #[schema(example = "my super password")]
     password: String,
 }
 
@@ -28,7 +34,11 @@ struct RegisterQuery {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 struct RegisterResponse {
     id: Uuid,
+
+    #[schema(example = "John Doe")]
     name: String,
+
+    #[schema(example = "john.doe@gmail.com")]
     email: String,
     created_at: NaiveDateTime,
 }
@@ -67,9 +77,7 @@ async fn register(
         .get_result(&mut conn);
 
     match inserted_user {
-        Ok(user) => {
-            HttpResponse::Created().json(user)
-        }
+        Ok(user) => HttpResponse::Created().json(user),
         Err(Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
             HttpResponse::Conflict().body("User already with this email already exists")
         }
@@ -81,7 +89,12 @@ async fn register(
 
 #[derive(Deserialize, Debug, ToSchema)]
 struct LoginQuery {
+
+    #[schema(example = "john.doe@gmail.com")]
     email: String,
+
+
+    #[schema(example = "my super password")]
     password: String,
 }
 
@@ -157,4 +170,42 @@ async fn login(
 async fn logout(user: Identity) -> impl Responder {
     user.logout();
     HttpResponse::Ok().body("Logged out")
+}
+
+#[utoipa::path(
+    context_path = "/api/auth",
+    tags=["Auth"],
+    responses(
+        (status = 200, description = "User information", body = User),
+        (status = 500, description = "Failed to get account from db", headers(
+            ("Set-Cookie", description="will expires the session cookie")
+        )),
+    )
+)]
+#[get("/me")]
+async fn me(
+    user: Identity,
+    db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> impl Responder {
+    let mut conn = db
+        .get()
+        .map_err(|e| {
+            HttpResponse::InternalServerError()
+                .body(format!("Diesel error occurred getting connection: {}", e))
+        })
+        .unwrap();
+
+    //should never fail?
+    let user_uuid: Uuid = user.id().unwrap().to_string().parse().unwrap();
+
+    let user_from_db = users.find(user_uuid).first::<User>(&mut conn);
+
+    if let Err(e) = user_from_db {
+        user.logout();
+        return HttpResponse::InternalServerError().body(e.to_string());
+    }
+
+    let user_from_db = user_from_db.unwrap();
+
+    HttpResponse::Ok().json(user_from_db)
 }
