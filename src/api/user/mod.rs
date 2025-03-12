@@ -129,30 +129,22 @@ async fn login(
         })
         .unwrap();
 
-    #[derive(Queryable, Selectable)]
-    #[diesel(table_name = crate::schema::users)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct PartialUser {
-        pub id: Uuid,
-        pub password: String,
-    }
-
     let user = users
         .filter(email.eq(&login_query.email))
         .select((id, password))
-        .first::<PartialUser>(&mut conn);
+        .first::<(Uuid, String)>(&mut conn);
 
     if let Err(_) = user {
         return HttpResponse::Unauthorized().body("Invalid email");
     }
 
-    let partial_user = user.unwrap();
+    let (user_id, user_password) = user.unwrap();
 
-    if let Err(_) = verify(&login_query.password, &partial_user.password) {
+    if let Err(_) = verify(&login_query.password, &user_password) {
         return HttpResponse::Unauthorized().body("Invalid password");
     }
 
-    Identity::login(&request.extensions(), partial_user.id.into()).unwrap();
+    Identity::login(&request.extensions(), user_id.into()).unwrap();
     HttpResponse::Ok().body("Logged in")
 }
 
@@ -196,7 +188,7 @@ async fn me(
         .unwrap();
 
     //should never fail?
-    let user_uuid: Uuid = user.id().unwrap().to_string().parse().unwrap();
+    let user_uuid: Uuid = user.id().unwrap().parse().unwrap();
 
     let user_from_db = users.find(user_uuid).first::<User>(&mut conn);
 
