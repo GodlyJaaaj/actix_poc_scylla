@@ -96,9 +96,10 @@ async fn register(
     }
 }
 
-#[derive(Deserialize, Debug, ToSchema)]
+#[derive(Deserialize, Debug, ToSchema, Validate)]
 struct LoginQuery {
     #[schema(example = "john.doe@gmail.com")]
+    #[validate(email)]
     email: String,
 
     #[schema(example = "my super password")]
@@ -113,6 +114,7 @@ struct LoginQuery {
         (status = 200, description = "Logged in successfully", headers(
             ("Set-Cookie", description="Set session cookie")
         )),
+        (status = 400, description = "Not a valid email"),
         (status = 401, description = "Invalid mail / password"),
         (status = 409, description = "Already logged in"),
     )
@@ -126,6 +128,9 @@ async fn login(
 ) -> impl Responder {
     if let Some(_) = user {
         return HttpResponse::Conflict().body("Already logged in");
+    }
+    if let Err(e) = login_query.validate() {
+        return HttpResponse::BadRequest().body(e.to_string());
     }
 
     let mut conn = db
