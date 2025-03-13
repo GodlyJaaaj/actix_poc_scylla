@@ -14,7 +14,7 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-use validator::{Validate};
+use validator::Validate;
 
 #[derive(Deserialize, Insertable, ToSchema, Debug, Validate)]
 #[diesel(table_name = crate::schema::users)]
@@ -98,10 +98,8 @@ async fn register(
 
 #[derive(Deserialize, Debug, ToSchema)]
 struct LoginQuery {
-
     #[schema(example = "john.doe@gmail.com")]
     email: String,
-
 
     #[schema(example = "my super password")]
     password: String,
