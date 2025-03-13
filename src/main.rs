@@ -34,7 +34,7 @@ pub fn get_connection_pool() -> Pool<ConnectionManager<PgConnection>> {
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    let socket = SocketAddrV4::new("127.0.0.1".parse().unwrap(), 8080);
+    let socket = SocketAddrV4::new("0.0.0.0".parse().unwrap(), 8080);
 
     eprintln!("Listening on : http://{:?}", socket);
     let storage = RedisSessionStore::new("redis://127.0.0.1:6379")
@@ -55,7 +55,7 @@ async fn main() -> std::io::Result<()> {
                     .service(crate::api::user::register)
                     .service(crate::api::user::login)
                     .service(crate::api::user::logout)
-                    .service(crate::api::user::me),
+                    .service(crate::api::user::me)
             )
             .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
                 Url::new("user-api", "/api-docs/user-api.json"),

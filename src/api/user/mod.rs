@@ -14,18 +14,22 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::{Validate};
 
-#[derive(Deserialize, Insertable, ToSchema, Debug)]
+#[derive(Deserialize, Insertable, ToSchema, Debug, Validate)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 struct RegisterQuery {
     #[schema(example = "John Doe")]
+    #[validate(length(min = 3, max = 100))]
     name: String,
 
     #[schema(example = "john.doe@gmail.com")]
+    #[validate(email)]
     email: String,
 
     #[schema(example = "my super password")]
+    #[validate(length(min = 8))]
     password: String,
 }
 
@@ -49,6 +53,7 @@ struct RegisterResponse {
     tags=["Auth"],
     responses(
             (status = 201, description = "User created successfully", body = RegisterResponse),
+            (status = 400, description = "Validation error"),
             (status = 409, description = "User already exists"),
     )
 )]
@@ -57,6 +62,10 @@ async fn register(
     mut info: web::Json<RegisterQuery>,
     db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> impl Responder {
+    if let Err(e) = info.validate() {
+        return HttpResponse::BadRequest().body(e.to_string());
+    }
+
     let mut conn = db
         .get()
         .map_err(|e| {
@@ -79,7 +88,7 @@ async fn register(
     match inserted_user {
         Ok(user) => HttpResponse::Created().json(user),
         Err(Error::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) => {
-            HttpResponse::Conflict().body("User already with this email already exists")
+            HttpResponse::Conflict().body("User with this email already exists")
         }
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Error while creating user: {:?}", e))
