@@ -2,6 +2,7 @@ pub mod api;
 pub mod models;
 pub mod schema;
 
+use crate::api::pipeline::{get_pipeline_handler, update_pipeline_handler};
 use crate::api::UserApi;
 use actix_identity::IdentityMiddleware;
 use actix_session::storage::RedisSessionStore;
@@ -55,7 +56,9 @@ async fn main() -> std::io::Result<()> {
                     .service(crate::api::user::register)
                     .service(crate::api::user::login)
                     .service(crate::api::user::logout)
-                    .service(crate::api::user::me),
+                    .service(crate::api::user::me)
+                    .service(update_pipeline_handler)
+                    .service(get_pipeline_handler),
             )
             .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
                 Url::new("user-api", "/api-docs/user-api.json"),

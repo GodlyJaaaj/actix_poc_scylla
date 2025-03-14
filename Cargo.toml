@@ -5,7 +5,14 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.10.2"
-diesel = { version = "2.2.8", features = ["postgres_backend", "postgres", "uuid", "r2d2", "chrono", "serde_json"] }
+diesel = { version = "2.2.8", features = [
+    "postgres_backend",
+    "postgres",
+    "uuid",
+    "r2d2",
+    "chrono",
+    "serde_json",
+] }
 dotenvy = "0.15.7"
 uuid = { version = "1.15.1", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
@@ -16,4 +23,5 @@ bcrypt = "0.17.0"
 chrono = { version = "0.4.40", features = ["serde"] }
 actix-session = { version = "0.10.1", features = ["redis-session"] }
 actix-identity = "0.8.0"
-validator = { version = "0.20.0",  features = ["derive"]}
+validator = { version = "0.20.0", features = ["derive"] }
+toml = "0.5"
