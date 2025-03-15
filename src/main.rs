@@ -1,5 +1,6 @@
 pub mod config;
 pub mod db;
+pub mod models;
 pub mod modules;
 pub mod routes;
 pub mod schema;

@@ -1,4 +1,4 @@
-use crate::modules::auth::handlers::{login, logout, register};
+use crate::modules::auth::handler::{login, logout, register};
 use actix_web::web;
 
 pub fn config_routes(cfg: &mut web::ServiceConfig) {

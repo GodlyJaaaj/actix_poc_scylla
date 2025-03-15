@@ -1,4 +1,6 @@
-use crate::modules::auth::models::{Account, RegisterQuery, User};
+use crate::models::Account;
+use crate::models::User;
+use crate::modules::auth::dto::RegisterQuery;
 use diesel::prelude::*;
 use diesel::PgConnection;
 use std::error::Error;
@@ -29,7 +31,7 @@ impl AuthRepository {
         use crate::schema::users::dsl::*;
 
         conn.transaction(|conn| {
-            // First create the userw
+            // First create the user
             let user: User = diesel::insert_into(users)
                 .values((name.eq(&new_user.name), email.eq(&new_user.email)))
                 .get_result(conn)?;

@@ -248,6 +248,7 @@ dependencies = [
  "dotenv",
  "env_logger",
  "log",
+ "regex",
  "serde",
  "thiserror 1.0.69",
  "utoipa",

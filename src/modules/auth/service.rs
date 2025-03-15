@@ -1,4 +1,5 @@
-use crate::modules::auth::models::{LoginQuery, RegisterQuery, User};
+use crate::modules::auth::dto::{RegisterQuery, LoginQuery};
+use crate::models::User;
 use crate::modules::auth::repository::AuthRepository;
 use actix_identity::Identity;
 use actix_web::{HttpMessage, HttpRequest};
@@ -29,7 +30,7 @@ impl AuthService {
         conn: &mut PgConnection,
         login_data: &LoginQuery,
     ) -> Result<User, Box<dyn Error>> {
-        use crate::modules::auth::models::Account;
+        use crate::models::Account;
         use crate::schema::accounts::dsl::*;
         use crate::utils::password::verify_password;
 
