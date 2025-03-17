@@ -30,36 +30,15 @@ impl UserRepository {
     pub fn update(
         conn: &mut PgConnection,
         user_id: Uuid,
-        data: &UserUpdateQuery,
+        update_data: &UserUpdateQuery,
     ) -> Result<User, Box<dyn Error>> {
         use crate::schema::users::dsl::*;
 
-        let target = users.filter(id.eq(user_id)).filter(deleted_at.is_null());
-
-        if let Some(name_value) = &data.name {
-            diesel::update(target.clone())
-                .set(name.eq(name_value))
-                .execute(conn)?;
-        }
-
-        if let Some(phone_value) = &data.phone {
-            diesel::update(target.clone())
-                .set(phone.eq(phone_value))
-                .execute(conn)?;
-        }
-
-        if let Some(image_value) = &data.image {
-            diesel::update(target.clone())
-                .set(image.eq(image_value))
-                .execute(conn)?;
-        }
-
-        // Get the updated user
-        let updated_user = users
+        diesel::update(users)
             .filter(id.eq(user_id))
             .filter(deleted_at.is_null())
-            .first::<User>(conn)?;
-
-        Ok(updated_user)
+            .set(update_data)
+            .get_result::<User>(conn)
+            .map_err(|e| e.into())
     }
 }

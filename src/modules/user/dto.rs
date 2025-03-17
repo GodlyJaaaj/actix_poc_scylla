@@ -8,7 +8,7 @@ use validator::Validate;
 
 static PHONE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\+[0-9]{5,15}$").unwrap());
 
-#[derive(Insertable, Deserialize, Validate, ToSchema)]
+#[derive(AsChangeset, Insertable, Deserialize, Validate, ToSchema)]
 #[diesel(table_name = users)]
 pub struct UserUpdateQuery {
     #[schema(example = "John Doe")]

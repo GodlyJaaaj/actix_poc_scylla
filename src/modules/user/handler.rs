@@ -129,17 +129,8 @@ pub async fn get_all(pool: web::Data<DbPool>) -> HttpResponse {
     }
 }
 
-pub async fn get_one(path: web::Path<String>, pool: web::Data<DbPool>) -> HttpResponse {
-    // Parse UUID
-    let uuid = match Uuid::parse_str(&path.into_inner()) {
-        Ok(id) => id,
-        Err(_) => {
-            return HttpResponse::BadRequest().json(error(
-                StatusCode::BAD_REQUEST,
-                "Invalid user ID format".into(),
-            ));
-        }
-    };
+pub async fn get_by_id(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> HttpResponse {
+    let id = path.into_inner();
 
     // Get DB connection
     let mut conn = match pool.get() {
@@ -153,7 +144,7 @@ pub async fn get_one(path: web::Path<String>, pool: web::Data<DbPool>) -> HttpRe
     };
 
     // Get user
-    match UserService::get_by_id(&mut conn, uuid) {
+    match UserService::get_by_id(&mut conn, id) {
         Ok(user) => HttpResponse::Ok().json(success(StatusCode::OK, Some(user))),
         Err(e) => HttpResponse::NotFound().json(error(
             StatusCode::NOT_FOUND,

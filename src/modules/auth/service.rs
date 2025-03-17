@@ -15,12 +15,12 @@ impl AuthService {
         user_data: &RegisterQuery,
     ) -> Result<User, Box<dyn Error>> {
         // Check if user already exists
-        if let Some(_) = AuthRepository::find_by_email(conn, &user_data.email)? {
+        if let Some(_) = AuthRepository::find_user_by_email(conn, &user_data.email)? {
             return Err("User with this email already exists".into());
         }
 
         // Create user and associated account
-        let user = AuthRepository::create(conn, user_data)?;
+        let user = AuthRepository::create_user_account(conn, user_data)?;
 
         Ok(user)
     }
@@ -35,7 +35,7 @@ impl AuthService {
         use crate::utils::password::verify_password;
 
         // Find user by email
-        let user = match AuthRepository::find_by_email(conn, &login_data.email)? {
+        let user = match AuthRepository::find_user_by_email(conn, &login_data.email)? {
             Some(user) => user,
             None => return Err("User not found".into()),
         };

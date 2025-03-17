@@ -1,5 +1,5 @@
-use crate::models::Account;
 use crate::models::User;
+use crate::models::Account;
 use crate::modules::auth::dto::RegisterQuery;
 use diesel::prelude::*;
 use diesel::PgConnection;
@@ -8,7 +8,7 @@ use std::error::Error;
 pub struct AuthRepository;
 
 impl AuthRepository {
-    pub fn find_by_email(
+    pub fn find_user_by_email(
         conn: &mut PgConnection,
         user_email: &str,
     ) -> Result<Option<User>, Box<dyn Error>> {
@@ -23,7 +23,7 @@ impl AuthRepository {
         Ok(user)
     }
 
-    pub fn create(
+    pub fn create_user_account(
         conn: &mut PgConnection,
         new_user: &RegisterQuery,
     ) -> Result<User, Box<dyn Error>> {
@@ -40,16 +40,13 @@ impl AuthRepository {
             let hashed_password = crate::utils::password::hash_password(&new_user.password)?;
 
             // Create associated account with hashed password
-            let account: Account = diesel::insert_into(accounts)
+            diesel::insert_into(accounts)
                 .values((
                     user_id.eq(&user.id),
                     account_type.eq("credentials"),
                     password.eq(&hashed_password),
                 ))
-                .get_result(conn)?;
-
-            log::info!("User created: {:?}", user);
-            log::info!("Account created : {:?}", account);
+                .get_result::<Account>(conn)?;
 
             Ok(user)
         })
