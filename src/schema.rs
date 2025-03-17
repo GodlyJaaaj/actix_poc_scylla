@@ -49,6 +49,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    repositories (id) {
+        id -> Uuid,
+        #[max_length = 100]
+        name -> Varchar,
+        #[max_length = 255]
+        url -> Varchar,
+        #[max_length = 255]
+        host_name -> Nullable<Varchar>,
+        #[max_length = 255]
+        user_name -> Nullable<Varchar>,
+        organization_id -> Uuid,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     team_users (team_id, user_id) {
         team_id -> Uuid,
         user_id -> Uuid,
@@ -93,6 +111,7 @@ diesel::table! {
 diesel::joinable!(accounts -> users (user_id));
 diesel::joinable!(organization_users -> organizations (organization_id));
 diesel::joinable!(organization_users -> users (user_id));
+diesel::joinable!(repositories -> organizations (organization_id));
 diesel::joinable!(team_users -> teams (team_id));
 diesel::joinable!(team_users -> users (user_id));
 diesel::joinable!(teams -> organizations (organization_id));
@@ -101,6 +120,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     accounts,
     organization_users,
     organizations,
+    repositories,
     team_users,
     teams,
     users,

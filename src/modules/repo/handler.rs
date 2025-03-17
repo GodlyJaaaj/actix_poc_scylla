@@ -1,7 +1,5 @@
-use crate::modules::organization::dto::{
-    AddUserToOrganizationQuery, OrganizationCreateQuery, OrganizationUpdateQuery,
-};
-use crate::modules::organization::service::OrganizationService;
+use crate::modules::repo::dto::{RepoCreateQuery, RepoUpdateQuery};
+use crate::modules::repo::service::RepoService;
 use crate::utils::response::{error, success};
 use actix_web::http::StatusCode;
 use actix_web::{web, HttpResponse};
@@ -23,12 +21,12 @@ pub async fn get_all(pool: web::Data<DbPool>) -> HttpResponse {
         }
     };
 
-    // Get all organizations
-    match OrganizationService::get_all(&mut conn) {
-        Ok(organizations) => HttpResponse::Ok().json(success(StatusCode::OK, Some(organizations))),
+    // Get all repos
+    match RepoService::get_all(&mut conn) {
+        Ok(repos) => HttpResponse::Ok().json(success(StatusCode::OK, Some(repos))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to retrieve organizations: {}", e),
+            format!("Failed to retrieve repos: {}", e),
         )),
     }
 }
@@ -47,22 +45,22 @@ pub async fn get_by_id(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> 
         }
     };
 
-    // Get organization by ID
-    match OrganizationService::get_by_id(&mut conn, id) {
-        Ok(organization) => HttpResponse::Ok().json(success(StatusCode::OK, Some(organization))),
+    // Get repo by ID
+    match RepoService::get_by_id(&mut conn, id) {
+        Ok(repo) => HttpResponse::Ok().json(success(StatusCode::OK, Some(repo))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to retrieve organization: {}", e),
+            format!("Failed to retrieve repo: {}", e),
         )),
     }
 }
 
 pub async fn create(
     pool: web::Data<DbPool>,
-    organization_data: web::Json<OrganizationCreateQuery>,
+    repo_data: web::Json<RepoCreateQuery>,
 ) -> HttpResponse {
-    // Validate organization data
-    if let Err(errors) = organization_data.validate() {
+    // Validate repo data
+    if let Err(errors) = repo_data.validate() {
         return HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
             format!("Validation error: {:?}", errors),
@@ -80,14 +78,12 @@ pub async fn create(
         }
     };
 
-    // Create organization
-    match OrganizationService::create(&mut conn, &organization_data) {
-        Ok(organization) => {
-            HttpResponse::Created().json(success(StatusCode::CREATED, Some(organization)))
-        }
+    // Create repo
+    match RepoService::create(&mut conn, &repo_data) {
+        Ok(repo) => HttpResponse::Created().json(success(StatusCode::CREATED, Some(repo))),
         Err(e) => HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
-            format!("Failed to create organization: {}", e),
+            format!("Failed to create repo: {}", e),
         )),
     }
 }
@@ -95,12 +91,12 @@ pub async fn create(
 pub async fn update(
     path: web::Path<uuid::Uuid>,
     pool: web::Data<DbPool>,
-    organization_data: web::Json<OrganizationUpdateQuery>,
+    repo_data: web::Json<RepoUpdateQuery>,
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    // Validate organization data
-    if let Err(errors) = organization_data.validate() {
+    // Validate repo data
+    if let Err(errors) = repo_data.validate() {
         return HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
             format!("Validation error: {:?}", errors),
@@ -118,12 +114,12 @@ pub async fn update(
         }
     };
 
-    // Update organization
-    match OrganizationService::update(&mut conn, id, &organization_data) {
-        Ok(organization) => HttpResponse::Ok().json(success(StatusCode::OK, Some(organization))),
+    // Update repo
+    match RepoService::update(&mut conn, id, &repo_data) {
+        Ok(repo) => HttpResponse::Ok().json(success(StatusCode::OK, Some(repo))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to update organization: {}", e),
+            format!("Failed to update repo: {}", e),
         )),
     }
 }
@@ -142,40 +138,12 @@ pub async fn delete(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> Htt
         }
     };
 
-    // Delete organization
-    match OrganizationService::delete(&mut conn, id) {
+    // Delete repo
+    match RepoService::delete(&mut conn, id) {
         Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to delete organization: {}", e),
-        )),
-    }
-}
-
-pub async fn add_user(
-    path: web::Path<uuid::Uuid>,
-    pool: web::Data<DbPool>,
-    user_data: web::Json<AddUserToOrganizationQuery>,
-) -> HttpResponse {
-    let id = path.into_inner();
-
-    // Get DB connection
-    let mut conn = match pool.get() {
-        Ok(conn) => conn,
-        Err(_) => {
-            return HttpResponse::ServiceUnavailable().json(error(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "Database connection error".into(),
-            ));
-        }
-    };
-
-    // Add user to organization
-    match OrganizationService::add_user(&mut conn, id, &user_data) {
-        Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
-        Err(e) => HttpResponse::InternalServerError().json(error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to add user to organization: {}", e),
+            format!("Failed to delete repo: {}", e),
         )),
     }
 }

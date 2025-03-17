@@ -1,7 +1,5 @@
-use crate::modules::organization::dto::{
-    AddUserToOrganizationQuery, OrganizationCreateQuery, OrganizationUpdateQuery,
-};
-use crate::modules::organization::service::OrganizationService;
+use crate::modules::team::dto::{AddUserToTeamQuery, TeamCreateQuery, TeamUpdateQuery};
+use crate::modules::team::service::TeamService;
 use crate::utils::response::{error, success};
 use actix_web::http::StatusCode;
 use actix_web::{web, HttpResponse};
@@ -23,12 +21,12 @@ pub async fn get_all(pool: web::Data<DbPool>) -> HttpResponse {
         }
     };
 
-    // Get all organizations
-    match OrganizationService::get_all(&mut conn) {
-        Ok(organizations) => HttpResponse::Ok().json(success(StatusCode::OK, Some(organizations))),
+    // Get all teams
+    match TeamService::get_all(&mut conn) {
+        Ok(teams) => HttpResponse::Ok().json(success(StatusCode::OK, Some(teams))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to retrieve organizations: {}", e),
+            format!("Failed to retrieve teams: {}", e),
         )),
     }
 }
@@ -47,22 +45,22 @@ pub async fn get_by_id(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> 
         }
     };
 
-    // Get organization by ID
-    match OrganizationService::get_by_id(&mut conn, id) {
-        Ok(organization) => HttpResponse::Ok().json(success(StatusCode::OK, Some(organization))),
+    // Get team by ID
+    match TeamService::get_by_id(&mut conn, id) {
+        Ok(team) => HttpResponse::Ok().json(success(StatusCode::OK, Some(team))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to retrieve organization: {}", e),
+            format!("Failed to retrieve team: {}", e),
         )),
     }
 }
 
 pub async fn create(
     pool: web::Data<DbPool>,
-    organization_data: web::Json<OrganizationCreateQuery>,
+    team_data: web::Json<TeamCreateQuery>,
 ) -> HttpResponse {
-    // Validate organization data
-    if let Err(errors) = organization_data.validate() {
+    // Validate team data
+    if let Err(errors) = team_data.validate() {
         return HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
             format!("Validation error: {:?}", errors),
@@ -80,14 +78,12 @@ pub async fn create(
         }
     };
 
-    // Create organization
-    match OrganizationService::create(&mut conn, &organization_data) {
-        Ok(organization) => {
-            HttpResponse::Created().json(success(StatusCode::CREATED, Some(organization)))
-        }
+    // Create team
+    match TeamService::create(&mut conn, &team_data) {
+        Ok(team) => HttpResponse::Created().json(success(StatusCode::CREATED, Some(team))),
         Err(e) => HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
-            format!("Failed to create organization: {}", e),
+            format!("Failed to create team: {}", e),
         )),
     }
 }
@@ -95,12 +91,12 @@ pub async fn create(
 pub async fn update(
     path: web::Path<uuid::Uuid>,
     pool: web::Data<DbPool>,
-    organization_data: web::Json<OrganizationUpdateQuery>,
+    team_data: web::Json<TeamUpdateQuery>,
 ) -> HttpResponse {
     let id = path.into_inner();
 
-    // Validate organization data
-    if let Err(errors) = organization_data.validate() {
+    // Validate team data
+    if let Err(errors) = team_data.validate() {
         return HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
             format!("Validation error: {:?}", errors),
@@ -118,12 +114,12 @@ pub async fn update(
         }
     };
 
-    // Update organization
-    match OrganizationService::update(&mut conn, id, &organization_data) {
-        Ok(organization) => HttpResponse::Ok().json(success(StatusCode::OK, Some(organization))),
+    // Update team
+    match TeamService::update(&mut conn, id, &team_data) {
+        Ok(team) => HttpResponse::Ok().json(success(StatusCode::OK, Some(team))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to update organization: {}", e),
+            format!("Failed to update team: {}", e),
         )),
     }
 }
@@ -142,12 +138,12 @@ pub async fn delete(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> Htt
         }
     };
 
-    // Delete organization
-    match OrganizationService::delete(&mut conn, id) {
+    // Delete team
+    match TeamService::delete(&mut conn, id) {
         Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to delete organization: {}", e),
+            format!("Failed to delete team: {}", e),
         )),
     }
 }
@@ -155,7 +151,7 @@ pub async fn delete(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> Htt
 pub async fn add_user(
     path: web::Path<uuid::Uuid>,
     pool: web::Data<DbPool>,
-    user_data: web::Json<AddUserToOrganizationQuery>,
+    user_data: web::Json<AddUserToTeamQuery>,
 ) -> HttpResponse {
     let id = path.into_inner();
 
@@ -170,12 +166,12 @@ pub async fn add_user(
         }
     };
 
-    // Add user to organization
-    match OrganizationService::add_user(&mut conn, id, &user_data) {
+    // Add user to team
+    match TeamService::add_user(&mut conn, id, &user_data) {
         Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to add user to organization: {}", e),
+            format!("Failed to add user to team: {}", e),
         )),
     }
 }

@@ -39,7 +39,7 @@ impl OrganizationService {
     pub fn delete(conn: &mut PgConnection, organization_id: Uuid) -> Result<(), Box<dyn Error>> {
         OrganizationRepository::delete(conn, organization_id)
     }
-    
+
     pub fn add_user(
         conn: &mut PgConnection,
         organization_id: Uuid,
