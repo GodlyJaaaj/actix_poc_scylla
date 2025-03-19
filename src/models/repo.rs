@@ -1,9 +1,9 @@
-use chrono::NaiveDateTime;
+use crate::schema::repositories;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use crate::schema::repositories;
 
 #[derive(Queryable, Selectable, Serialize, ToSchema, Debug)]
 #[diesel(table_name = repositories)]
@@ -15,7 +15,7 @@ pub struct Repo {
     pub host_name: Option<String>,
     pub user_name: Option<String>,
     pub organization_id: Uuid,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
-    pub deleted_at: Option<NaiveDateTime>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

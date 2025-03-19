@@ -108,6 +108,18 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    verification_tokens (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        #[max_length = 255]
+        token -> Varchar,
+        created_at -> Timestamptz,
+        expires_at -> Timestamptz,
+        used_at -> Nullable<Timestamptz>,
+    }
+}
+
 diesel::joinable!(accounts -> users (user_id));
 diesel::joinable!(organization_users -> organizations (organization_id));
 diesel::joinable!(organization_users -> users (user_id));
@@ -115,6 +127,7 @@ diesel::joinable!(repositories -> organizations (organization_id));
 diesel::joinable!(team_users -> teams (team_id));
 diesel::joinable!(team_users -> users (user_id));
 diesel::joinable!(teams -> organizations (organization_id));
+diesel::joinable!(verification_tokens -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     accounts,
@@ -124,4 +137,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     team_users,
     teams,
     users,
+    verification_tokens,
 );

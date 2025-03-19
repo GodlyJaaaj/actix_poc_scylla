@@ -27,3 +27,30 @@ pub struct LoginQuery {
     #[validate(length(min = 8, max = 100))]
     pub password: String,
 }
+
+#[derive(Deserialize)]
+pub struct VerifyEmailParams {
+    pub token: String,
+}
+
+#[derive(Deserialize, Validate, ToSchema)]
+pub struct ForgotPasswordQuery {
+    #[schema(example = "john.doe@gmail.com")]
+    #[validate(email)]
+    pub email: String,
+}
+
+#[derive(Deserialize, Validate, ToSchema)]
+pub struct ResetPasswordQuery {
+    #[schema(example = "reset_token_123456")]
+    #[validate(length(min = 10))]
+    pub token: String,
+
+    #[schema(example = "new_password")]
+    #[validate(length(min = 8, max = 100))]
+    pub password: String,
+
+    #[schema(example = "new_password")]
+    #[validate(length(min = 8, max = 100))]
+    pub password_confirmation: String,
+}

@@ -1,9 +1,9 @@
-use chrono::NaiveDateTime;
+use crate::schema::users;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use crate::schema::users;
 
 #[derive(Queryable, Selectable, Serialize, ToSchema, Debug)]
 #[diesel(table_name = users)]
@@ -16,7 +16,7 @@ pub struct User {
     pub role: String,
     pub phone: Option<String>,
     pub verified: bool,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
-    pub deleted_at: Option<NaiveDateTime>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

@@ -1,9 +1,9 @@
-use chrono::NaiveDateTime;
+use crate::schema::accounts;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
-use crate::schema::accounts;
 
 #[derive(Queryable, Selectable, Serialize, ToSchema, Debug)]
 #[diesel(table_name = accounts)]
@@ -17,10 +17,10 @@ pub struct Account {
     pub provider_account_id: Option<String>,
     pub refresh_token: Option<String>,
     pub access_token: Option<String>,
-    pub expires_at: Option<NaiveDateTime>,
+    pub expires_at: Option<DateTime<Utc>>,
     pub token_type: Option<String>,
     pub scope: Option<String>,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
-    pub deleted_at: Option<NaiveDateTime>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
