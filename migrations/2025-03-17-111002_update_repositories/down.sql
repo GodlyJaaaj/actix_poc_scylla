@@ -1,0 +1,5 @@
+ALTER TABLE repositories
+ADD COLUMN description TEXT,
+ADD COLUMN ssh_key TEXT,
+ADD COLUMN ssh_key_path VARCHAR(255),
+ADD COLUMN port INTEGER DEFAULT 22;

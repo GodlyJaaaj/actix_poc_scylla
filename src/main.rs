@@ -1,69 +1,91 @@
-pub mod api;
+pub mod config;
+pub mod db;
 pub mod models;
+pub mod modules;
+pub mod routes;
 pub mod schema;
+pub mod utils;
 
-use crate::api::UserApi;
+use actix_cors::Cors;
 use actix_identity::IdentityMiddleware;
-use actix_session::storage::RedisSessionStore;
-use actix_session::SessionMiddleware;
-use actix_web::cookie::Key;
-use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpResponse, HttpServer};
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool};
-use dotenvy::dotenv;
+use actix_session::{storage::RedisSessionStore, SessionMiddleware};
+use actix_web::{
+    cookie::{Key, SameSite},
+    middleware::{Logger, NormalizePath, TrailingSlash},
+    web, App, HttpResponse, HttpServer,
+};
+use dotenv::dotenv;
 use env_logger::Env;
-use std::env;
-use std::net::SocketAddrV4;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::{SwaggerUi, Url};
+// use utoipa_swagger_ui::{SwaggerUi, Url};
 
-pub fn get_connection_pool() -> Pool<ConnectionManager<PgConnection>> {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let manager = ConnectionManager::<PgConnection>::new(&database_url);
-    let pool = Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.");
-
-    pool
-}
+use crate::config::Config;
+use crate::db::create_connection_pool;
+use crate::routes::config_routes;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Load environment variables from .env file
+    dotenv().ok();
+
+    // Initialize logger
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
-    let socket = SocketAddrV4::new("0.0.0.0".parse().unwrap(), 8080);
+    // Load configuration
+    let config = Config::load();
 
-    eprintln!("Listening on : http://{:?}", socket);
-    let storage = RedisSessionStore::new("redis://127.0.0.1:6379")
+    let port = config.port;
+
+    // Set up database connection pool
+    let db_pool = create_connection_pool(&config.database_url);
+
+    // Set up redis store for sessions
+    let redis_store = RedisSessionStore::new(config.redis_url.clone())
         .await
-        .unwrap();
+        .expect("Failed to connect to Redis");
 
-    let key = Key::generate();
+    // Secret key for session
+    let secret_key = Key::from(config.session_secret.as_bytes());
 
-    let pool = get_connection_pool();
+    log::info!("Starting server at http://0.0.0.0:{}", config.port);
+
+    // Start HTTP server
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost:3000")
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+            .allowed_headers(vec!["Authorization", "Content-Type", "Accept"])
+            .supports_credentials()
+            .max_age(3600);
+
         App::new()
+            // Enable logger
             .wrap(Logger::default())
+            // Enable CORS
+            .wrap(cors)
+            // Normalize paths
+            .wrap(NormalizePath::new(TrailingSlash::Trim))
+            // Identity middleware
             .wrap(IdentityMiddleware::default())
-            .wrap(SessionMiddleware::new(storage.clone(), key.clone()))
-            .service(
-                web::scope("/api/auth")
-                    .app_data(web::Data::new(pool.clone()))
-                    .service(crate::api::user::register)
-                    .service(crate::api::user::login)
-                    .service(crate::api::user::logout)
-                    .service(crate::api::user::me),
+            // Session middleware
+            .wrap(
+                SessionMiddleware::builder(redis_store.clone(), secret_key.clone())
+                    .cookie_name("session_id".to_string())
+                    .cookie_secure(config.env == "prod") // Only use secure cookies in production
+                    .cookie_http_only(true)
+                    .cookie_same_site(SameSite::Lax)
+                    .build(),
             )
-            .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls(vec![(
-                Url::new("user-api", "/api-docs/user-api.json"),
-                UserApi::openapi(),
-            )]))
+            // Share database pool
+            .app_data(web::Data::new(db_pool.clone()))
+            // Share config
+            .app_data(web::Data::new(config.clone()))
+            // Swagger
+            // .service(SwaggerUi::new("/swagger-ui/{_:.*}").urls())
+            // Configure API routes
+            .configure(config_routes)
             .default_service(web::route().to(|| HttpResponse::NotFound()))
     })
-    .bind(socket)?
+    .bind(format!("0.0.0.0:{}", port))?
     .run()
     .await
 }
