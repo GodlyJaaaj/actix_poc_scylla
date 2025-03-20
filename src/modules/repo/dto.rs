@@ -34,14 +34,13 @@ pub struct RepoUpdateQuery {
 
     #[schema(example = "https://git.acme.com/acme/acme-corporation.git")]
     pub url: Option<String>,
-    
+
     #[schema(example = "git.acme.com")]
     pub host_name: Option<String>,
-    
+
     #[schema(example = "git")]
     pub user_name: Option<String>,
 
     #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub organization_id: Option<Uuid>,
 }
-

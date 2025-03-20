@@ -1,0 +1,27 @@
+[server]
+base_url = ""
+port = 3000
+env = ""
+
+[database]
+url = ""
+
+[redis]
+url = ""
+
+[session]
+secret = ""
+
+[oauth.google]
+client_id = ""
+client_secret = ""
+redirect_url = ""
+
+[smtp]
+server = ""
+port = 2525
+username = ""
+password = ""
+tls_mode = ""
+email_from = ""
+frontend_url = ""
