@@ -1,21 +1,14 @@
 use crate::config::Config;
 use crate::models::User;
-use crate::modules::auth::dto::{LoginQuery, RegisterQuery};
+use crate::modules::auth::dto::{LoginQuery, RegisterQuery, ResetPasswordQuery, VerifyQuery};
 use crate::modules::auth::repository::AuthRepository;
 use actix_identity::Identity;
 use actix_web::{web, HttpMessage, HttpRequest};
 use chrono::{Duration, Utc};
 use diesel::prelude::*;
 use diesel::PgConnection;
-use serde::Serialize;
 use std::error::Error;
 use uuid::Uuid;
-
-#[derive(Serialize)]
-pub struct TokenResponse {
-    access_token: String,
-    refresh_token: String,
-}
 
 pub struct AuthService;
 
@@ -86,8 +79,6 @@ impl AuthService {
         use lettre::{Message, SmtpTransport, Transport};
         use rand::{distributions::Alphanumeric, Rng};
 
-        println!("{}", config.smtp.email_from);
-
         // Récupérer le user pour son mail
         let user = match AuthRepository::find_user_by_id(conn, user_id)
             .map_err(|e| format!("Failed to find user: {}", e))?
@@ -123,9 +114,8 @@ impl AuthService {
                 "Bonjour {},\n\n\
                 Veuillez cliquer sur le lien suivant pour vérifier votre adresse email :\n\
                 {}/verify?token={}\n\n\
-                Ce lien expirera dans 24 heures.\n\n\
-                Cordialement,\n\
-                L'équipe",
+                Ce lien expirera dans 10 minutes.\n\n\
+                L'équipe Scylla",
                 user.name, config.smtp.frontend_url, token
             ))?;
 
@@ -166,14 +156,17 @@ impl AuthService {
         Ok(())
     }
 
-    pub fn verify(conn: &mut PgConnection, token: &str) -> Result<(), Box<dyn Error>> {
-        // Récupérer le token de vérification
-        let token = match AuthRepository::find_verification_token(conn, token)? {
+    pub fn verify(
+        conn: &mut PgConnection,
+        verify_data: &VerifyQuery,
+    ) -> Result<(), Box<dyn Error>> {
+        // retrieve the verification token
+        let token = match AuthRepository::find_verification_token(conn, &verify_data.token)? {
             Some(token) => token,
             None => return Err("Token not found".into()),
         };
 
-        // Vérifier si le token a expiré ou a déjà été utilisé
+        // verify if the token has expired or has already been used
         if token.expires_at < Utc::now() {
             return Err("Token has expired".into());
         }
@@ -182,39 +175,126 @@ impl AuthService {
             return Err("Token has already been used".into());
         }
 
-        // Marquer le token comme utilisé
+        // set the token as used
         AuthRepository::use_verification_token(conn, &token)?;
 
         Ok(())
     }
 
-    pub fn forgot_password(conn: &mut PgConnection, email: &str) -> Result<(), Box<dyn Error>> {
-        // Vérifier si l'utilisateur existe
-        let user = match AuthRepository::find_user_by_email(conn, email)? {
+    pub fn forgot_password(
+        conn: &mut PgConnection,
+        user_id: Uuid,
+        config: &web::Data<Config>,
+    ) -> Result<(), Box<dyn Error>> {
+        use lettre::transport::smtp::authentication::Credentials;
+        use lettre::transport::smtp::client::{Tls, TlsParameters};
+        use lettre::{Message, SmtpTransport, Transport};
+        use rand::{distributions::Alphanumeric, Rng};
+
+        // Récupérer le user pour son mail
+        let user = match AuthRepository::find_user_by_id(conn, user_id)
+            .map_err(|e| format!("Failed to find user: {}", e))?
+        {
             Some(user) => user,
             None => return Err("User not found".into()),
         };
 
-        // TODO: Générer un token de réinitialisation et l'enregistrer
-        // TODO: Envoyer un email avec le lien de réinitialisation
+        // Générer un token random
+        let token: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
 
-        // Pour l'instant, on simule que tout s'est bien passé
+        let expiration = Utc::now() + Duration::minutes(10);
+        AuthRepository::create_reset_password_token(conn, user_id, &token, expiration)?;
+
+        let email = Message::builder()
+            .from(
+                config
+                    .smtp
+                    .email_from
+                    .parse()
+                    .map_err(|e| format!("Invalid from email: {}", e))?,
+            )
+            .to(user
+                .email
+                .parse()
+                .map_err(|e| format!("Invalid recipient email: {}", e))?)
+            .subject("Réinitialisation de votre mot de passe")
+            .body(format!(
+                "Bonjour {},\n\n\
+                Veuillez cliquer sur le lien suivant pour réinitialiser votre mot de passe :\n\
+                {}/reset-password?token={}\n\n\
+                Ce lien expirera dans 10 minutes.\n\n\
+                L'équipe Scylla",
+                user.name, config.smtp.frontend_url, token
+            ))?;
+
+        let creds = Credentials::new(config.smtp.username.clone(), config.smtp.password.clone());
+
+        // Build different transports based on TLS mode
+        let mailer = match config.smtp.tls_mode.to_lowercase().as_str() {
+            "none" => SmtpTransport::builder_dangerous(&config.smtp.server)
+                .credentials(creds)
+                .port(config.smtp.port)
+                .build(),
+            "required" => {
+                let tls_parameters = TlsParameters::new(config.smtp.server.clone())
+                    .map_err(|e| format!("TLS error: {}", e))?;
+
+                SmtpTransport::builder_dangerous(&config.smtp.server)
+                    .credentials(creds)
+                    .port(config.smtp.port)
+                    .tls(Tls::Required(tls_parameters))
+                    .build()
+            }
+            _ => {
+                // "opportunistic" - default
+                SmtpTransport::builder_dangerous(&config.smtp.server)
+                    .credentials(creds)
+                    .port(config.smtp.port)
+                    .tls(Tls::Opportunistic(
+                        TlsParameters::new(config.smtp.server.clone())
+                            .map_err(|e| format!("TLS error: {}", e))?,
+                    ))
+                    .build()
+            }
+        };
+
+        // Send the email with detailed error handling
+        mailer.send(&email)?;
+
         Ok(())
     }
 
     pub fn reset_password(
         conn: &mut PgConnection,
-        token: &str,
-        new_password: &str,
+        reset_data: &ResetPasswordQuery,
     ) -> Result<(), Box<dyn Error>> {
-        // TODO: Vérifier que le token est valide et récent
-        // TODO: Récupérer l'utilisateur associé au token
-        // TODO: Mettre à jour le mot de passe haché
+        // verify matching passwords
+        if reset_data.password != reset_data.password_confirm {
+            return Err("Passwords do not match".into());
+        }
 
-        // Simulation d'un hash de mot de passe
-        let _hashed_password = crate::utils::password::hash_password(new_password)?;
+        // retrieve the reset password token
+        let token = match AuthRepository::find_reset_password_token(conn, &reset_data.token)? {
+            Some(token) => token,
+            None => return Err("Token not found".into()),
+        };
 
-        // Simule une réinitialisation réussie
+        // verify if the token has expired or has already been used
+        if token.expires_at < Utc::now() {
+            return Err("Token has expired".into());
+        }
+
+        if token.used_at.is_some() {
+            return Err("Token has already been used".into());
+        }
+
+        // set the token as used
+        AuthRepository::use_reset_password_token(conn, &token, &reset_data.password)?;
+
         Ok(())
     }
 }

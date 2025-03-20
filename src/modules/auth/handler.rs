@@ -1,7 +1,5 @@
 use crate::config::Config;
-use crate::modules::auth::dto::{
-    ForgotPasswordQuery, LoginQuery, RegisterQuery, ResetPasswordQuery, VerifyEmailParams,
-};
+use crate::modules::auth::dto::{LoginQuery, RegisterQuery, ResetPasswordQuery, VerifyQuery};
 use crate::modules::auth::service::AuthService;
 use crate::utils::response::{error, success};
 use actix_identity::Identity;
@@ -137,12 +135,7 @@ pub async fn request_verification(
     }
 }
 
-pub async fn verify(
-    pool: web::Data<DbPool>,
-    query: web::Query<VerifyEmailParams>
-) -> HttpResponse {
-    let token = &query.token;
-
+pub async fn verify(pool: web::Data<DbPool>, token_data: web::Json<VerifyQuery>) -> HttpResponse {
     // Get DB connection
     let mut conn = match pool.get() {
         Ok(conn) => conn,
@@ -155,7 +148,7 @@ pub async fn verify(
     };
 
     // Verify email
-    match AuthService::verify(&mut conn, &token) {
+    match AuthService::verify(&mut conn, &token_data) {
         Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
         Err(e) => HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
@@ -165,16 +158,29 @@ pub async fn verify(
 }
 
 pub async fn forgot_password(
+    id: Identity,
     pool: web::Data<DbPool>,
-    forgot_data: web::Json<ForgotPasswordQuery>,
+    config: web::Data<Config>,
 ) -> HttpResponse {
-    // Validate email data
-    if let Err(errors) = forgot_data.validate() {
-        return HttpResponse::BadRequest().json(error(
-            StatusCode::BAD_REQUEST,
-            format!("Validation error: {:?}", errors),
-        ));
-    }
+    // Get user ID from session
+    let user_id = match id.id() {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::Unauthorized()
+                .json(error(StatusCode::UNAUTHORIZED, "Not authenticated".into()));
+        }
+    };
+
+    // Parse UUID
+    let uuid = match Uuid::parse_str(&user_id) {
+        Ok(id) => id,
+        Err(_) => {
+            return HttpResponse::BadRequest().json(error(
+                StatusCode::BAD_REQUEST,
+                "Invalid user ID format".into(),
+            ));
+        }
+    };
 
     // Get DB connection
     let mut conn = match pool.get() {
@@ -187,25 +193,13 @@ pub async fn forgot_password(
         }
     };
 
-    // Request password reset
-    match AuthService::forgot_password(&mut conn, &forgot_data.email) {
-        Ok(_) => HttpResponse::Ok().json(success::<String>(
-            StatusCode::OK,
-            Some(
-                "If your email exists in our system, you will receive a password reset link".into(),
-            ),
+    // Send password reset email
+    match AuthService::forgot_password(&mut conn, uuid, &config) {
+        Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
+        Err(e) => HttpResponse::InternalServerError().json(error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to send verification email: {}", e),
         )),
-        Err(e) => {
-            // Log the error but don't expose it to prevent user enumeration
-            log::error!("Password reset request failed: {}", e);
-            HttpResponse::Ok().json(success::<String>(
-                StatusCode::OK,
-                Some(
-                    "If your email exists in our system, you will receive a password reset link"
-                        .into(),
-                ),
-            ))
-        }
     }
 }
 
@@ -222,7 +216,7 @@ pub async fn reset_password(
     }
 
     // Check if passwords match
-    if reset_data.password != reset_data.password_confirmation {
+    if reset_data.password != reset_data.password_confirm {
         return HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,
             "Passwords do not match".into(),
@@ -241,7 +235,7 @@ pub async fn reset_password(
     };
 
     // Reset password
-    match AuthService::reset_password(&mut conn, &reset_data.token, &reset_data.password) {
+    match AuthService::reset_password(&mut conn, &reset_data) {
         Ok(_) => HttpResponse::Ok().json(success::<String>(
             StatusCode::OK,
             Some("Password has been reset successfully".into()),
