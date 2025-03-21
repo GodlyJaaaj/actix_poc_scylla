@@ -8,6 +8,11 @@ services:
       - redis_data:/data
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
   db:
     image: postgres:16-alpine
@@ -22,21 +27,29 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
-  # Uncomment to enable application container
   # app:
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
   #   depends_on:
-  #     - db
-  #     - redis
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
   #   ports:
   #     - "3000:3000"
   #   volumes:
   #     - ./config.toml:/app/config.toml
   #   networks:
   #     - app_network
+  #   environment:
+  #     - RUST_LOG=info
 
 networks:
   app_network:

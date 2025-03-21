@@ -2,4 +2,5 @@
 .idea
 .vscode
 
+.env
 config.toml

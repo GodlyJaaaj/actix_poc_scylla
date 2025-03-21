@@ -42,7 +42,6 @@ docker-compose up -d
 
 ```bash
 diesel setup
-diesel migration run
 ```
 
 6. Build and run the application:
