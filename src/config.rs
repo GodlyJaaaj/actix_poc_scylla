@@ -11,6 +11,7 @@ pub struct Config {
     pub session: SessionConfig,
     pub oauth: OAuthConfig,
     pub smtp: SmtpConfig,
+    pub file_storage: FileStorageConfig,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -57,6 +58,13 @@ pub struct SmtpConfig {
     pub email_from: String,
     pub frontend_url: String,
     pub tls_mode: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct FileStorageConfig {
+    pub upload_dir: String,
+    pub max_size: usize,
+    pub allowed_types: Vec<String>,
 }
 
 impl Config {

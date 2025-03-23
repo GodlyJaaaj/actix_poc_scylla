@@ -1,6 +1,13 @@
-/target
+# IDE
 .idea
 .vscode
 
-.env
+# build files
+/target
+
+# config/secret files
 config.toml
+.env
+
+# static files
+uploads

@@ -18,8 +18,4 @@ pub struct UserUpdateQuery {
     #[schema(example = "+1234567890")]
     #[validate(regex(path = *PHONE_REGEX))]
     pub phone: Option<String>,
-
-    #[schema(example = "https://example.com/image.jpg")]
-    #[validate(url)]
-    pub image: Option<String>,
 }

@@ -11,6 +11,7 @@ use crate::db::create_connection_pool;
 use crate::routes::config_routes;
 
 use actix_cors::Cors;
+use actix_files as fs;
 use actix_identity::IdentityMiddleware;
 use actix_session::{storage::RedisSessionStore, SessionMiddleware};
 use actix_web::{
@@ -75,6 +76,7 @@ async fn main() -> std::io::Result<()> {
             )
             .app_data(web::Data::new(db_pool.clone()))
             .app_data(web::Data::new(config.clone()))
+            .service(fs::Files::new("/uploads", "uploads").show_files_listing())
             .configure(config_routes)
             .default_service(web::route().to(|| HttpResponse::NotFound()))
     })

@@ -77,7 +77,7 @@ impl AuthService {
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::transport::smtp::client::{Tls, TlsParameters};
         use lettre::{Message, SmtpTransport, Transport};
-        use rand::{distributions::Alphanumeric, Rng};
+        use rand::Rng;
 
         // Récupérer le user pour son mail
         let user = match AuthRepository::find_user_by_id(conn, user_id)
@@ -88,8 +88,8 @@ impl AuthService {
         };
 
         // Générer un token random
-        let token: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
+        let token: String = rand::rng()
+            .sample_iter(&rand::distr::Alphanumeric)
             .take(32)
             .map(char::from)
             .collect();
@@ -189,7 +189,7 @@ impl AuthService {
         use lettre::transport::smtp::authentication::Credentials;
         use lettre::transport::smtp::client::{Tls, TlsParameters};
         use lettre::{Message, SmtpTransport, Transport};
-        use rand::{distributions::Alphanumeric, Rng};
+        use rand::Rng;
 
         // Récupérer le user pour son mail
         let user = match AuthRepository::find_user_by_id(conn, user_id)
@@ -200,8 +200,8 @@ impl AuthService {
         };
 
         // Générer un token random
-        let token: String = rand::thread_rng()
-            .sample_iter(&Alphanumeric)
+        let token: String = rand::rng()
+            .sample_iter(&rand::distr::Alphanumeric)
             .take(32)
             .map(char::from)
             .collect();
