@@ -111,7 +111,7 @@ pub async fn update_me(
     }
 }
 
-pub async fn update_profile_image(
+pub async fn update_avatar(
     id: Identity,
     pool: web::Data<DbPool>,
     mut payload: Multipart,
@@ -149,7 +149,7 @@ pub async fn update_profile_image(
     };
 
     // Update image
-    match UserService::update_profile_image(&mut conn, uuid, &mut payload, &config).await {
+    match UserService::update_avatar(&mut conn, uuid, &mut payload, &config).await {
         Ok(user) => HttpResponse::Ok().json(success(StatusCode::OK, Some(user))),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -204,7 +204,7 @@ pub async fn get_by_id(path: web::Path<uuid::Uuid>, pool: web::Data<DbPool>) -> 
     }
 }
 
-pub async fn get_profile_image(
+pub async fn get_avatar(
     req: actix_web::HttpRequest,
     id: Identity,
     pool: web::Data<DbPool>,
@@ -242,7 +242,7 @@ pub async fn get_profile_image(
     };
 
     // Get image path from service
-    match UserService::get_profile_image_path(&mut conn, uuid, &config) {
+    match UserService::get_avatar_url(&mut conn, uuid, &config) {
         Ok(image_path) => match NamedFile::open(image_path) {
             Ok(file) => file.into_response(&req),
             Err(e) => {

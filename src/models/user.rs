@@ -12,7 +12,7 @@ pub struct User {
     pub id: Uuid,
     pub name: String,
     pub email: String,
-    pub image: Option<String>,
+    pub avatar: Option<String>,
     pub role: String,
     pub phone: Option<String>,
     pub verified: bool,

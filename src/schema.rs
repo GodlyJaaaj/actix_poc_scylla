@@ -79,6 +79,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    secrets (id) {
+        id -> Uuid,
+        #[max_length = 100]
+        name -> Varchar,
+        #[max_length = 255]
+        key -> Varchar,
+        value -> Text,
+        nonce -> Bytea,
+        owner_id -> Uuid,
+        #[max_length = 20]
+        owner_type -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        deleted_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     team_users (team_id, user_id) {
         team_id -> Uuid,
         user_id -> Uuid,
@@ -97,6 +115,8 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         deleted_at -> Nullable<Timestamptz>,
+        #[max_length = 255]
+        icon -> Nullable<Varchar>,
     }
 }
 
@@ -108,7 +128,7 @@ diesel::table! {
         #[max_length = 255]
         email -> Varchar,
         #[max_length = 255]
-        image -> Nullable<Varchar>,
+        avatar -> Nullable<Varchar>,
         #[max_length = 50]
         role -> Varchar,
         #[max_length = 50]
@@ -148,6 +168,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     organizations,
     repositories,
     reset_password_tokens,
+    secrets,
     team_users,
     teams,
     users,

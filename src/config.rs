@@ -12,6 +12,7 @@ pub struct Config {
     pub oauth: OAuthConfig,
     pub smtp: SmtpConfig,
     pub file_storage: FileStorageConfig,
+    pub crypto: CryptoConfig,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -65,6 +66,11 @@ pub struct FileStorageConfig {
     pub upload_dir: String,
     pub max_size: usize,
     pub allowed_types: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CryptoConfig {
+    pub master_key: String,
 }
 
 impl Config {

@@ -30,7 +30,7 @@ impl UserService {
         UserRepository::update(conn, user_id, data)
     }
 
-    pub async fn update_profile_image(
+    pub async fn update_avatar(
         conn: &mut PgConnection,
         user_id: Uuid,
         payload: &mut Multipart,
@@ -46,15 +46,15 @@ impl UserService {
             }
         };
 
-        UserRepository::update_profile_image(conn, user_id, &image_path)
+        UserRepository::update_avatar(conn, user_id, &image_path)
     }
 
-    pub fn get_profile_image_path(
+    pub fn get_avatar_url(
         conn: &mut PgConnection,
         user_id: Uuid,
         config: &web::Data<Config>,
     ) -> Result<PathBuf, Box<dyn Error>> {
-        let image_filename = match UserRepository::get_profile_image(conn, user_id)? {
+        let image_filename = match UserRepository::get_avatar(conn, user_id)? {
             Some(filename) if !filename.is_empty() => filename,
             _ => {
                 return Err(Box::new(io::Error::new(

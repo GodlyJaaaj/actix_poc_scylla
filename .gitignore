@@ -3,11 +3,11 @@
 .vscode
 
 # build files
-/target
+target
 
 # config/secret files
 config.toml
 .env
 
 # static files
-uploads
+static/

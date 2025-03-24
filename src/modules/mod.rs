@@ -1,5 +1,6 @@
 pub mod auth;
-pub mod user;
 pub mod organization;
-pub mod team;
 pub mod repo;
+pub mod secret;
+pub mod team;
+pub mod user;

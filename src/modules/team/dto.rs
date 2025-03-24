@@ -15,6 +15,9 @@ pub struct TeamCreateQuery {
     #[schema(example = "A leading provider of innovative solutions")]
     pub description: Option<String>,
 
+    #[schema(example = "Console")]
+    pub icon: Option<String>,
+
     #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub organization_id: Uuid,
 }
@@ -28,6 +31,9 @@ pub struct TeamUpdateQuery {
 
     #[schema(example = "A leading provider of innovative solutions worldwide")]
     pub description: Option<String>,
+
+    #[schema(example = "Console")]
+    pub icon: Option<String>,
 
     #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub organization_id: Option<Uuid>,

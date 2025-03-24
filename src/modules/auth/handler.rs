@@ -89,7 +89,7 @@ pub async fn logout(id: Identity) -> HttpResponse {
     }
 }
 
-pub async fn request_verification(
+pub async fn request_email_verification(
     id: Identity,
     pool: web::Data<DbPool>,
     config: web::Data<Config>,
@@ -126,7 +126,7 @@ pub async fn request_verification(
     };
 
     // Request email verification
-    match AuthService::request_verification(&mut conn, uuid, &config) {
+    match AuthService::request_email_verification(&mut conn, uuid, &config) {
         Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
         Err(e) => HttpResponse::InternalServerError().json(error(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -135,7 +135,7 @@ pub async fn request_verification(
     }
 }
 
-pub async fn verify(pool: web::Data<DbPool>, token_data: web::Json<VerifyQuery>) -> HttpResponse {
+pub async fn verify_email(pool: web::Data<DbPool>, token_data: web::Json<VerifyQuery>) -> HttpResponse {
     // Get DB connection
     let mut conn = match pool.get() {
         Ok(conn) => conn,
@@ -148,7 +148,7 @@ pub async fn verify(pool: web::Data<DbPool>, token_data: web::Json<VerifyQuery>)
     };
 
     // Verify email
-    match AuthService::verify(&mut conn, &token_data) {
+    match AuthService::verify_email(&mut conn, &token_data) {
         Ok(_) => HttpResponse::Ok().json(success::<()>(StatusCode::OK, None)),
         Err(e) => HttpResponse::BadRequest().json(error(
             StatusCode::BAD_REQUEST,

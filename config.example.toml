@@ -1,16 +1,17 @@
 [server]
-base_url = ""
+protocol = "http"
+base_url = "0.0.0.0"
 port = 3000
-env = ""
+env = "dev"
 
 [database]
-url = ""
+url = "postgres://postgres:example@localhost/diesel_demo"
 
 [redis]
-url = ""
+url = "redis://127.0.0.1:6379"
 
 [session]
-secret = ""
+secret = "your-very-secure-secret-key-here"
 
 [oauth.google]
 client_id = ""
@@ -18,10 +19,18 @@ client_secret = ""
 redirect_url = ""
 
 [smtp]
-server = ""
-port = 2525
-username = ""
-password = ""
-tls_mode = ""
-email_from = ""
-frontend_url = ""
+server = "smtp.example.com"
+port = 587
+username = "your-username"
+password = "your-password"
+tls_mode = "opportunistic"
+email_from = "noreply@example.com"
+frontend_url = "http://localhost:8080"
+
+[file_storage]
+upload_dir = "./static/uploads"
+max_size = 5242880  # 5MB
+allowed_types = ["image/jpeg", "image/png", "image/gif"]
+
+[crypto]
+master_key = "your-very-very-secure-master-key-for-encryption"

@@ -76,7 +76,7 @@ async fn main() -> std::io::Result<()> {
             )
             .app_data(web::Data::new(db_pool.clone()))
             .app_data(web::Data::new(config.clone()))
-            .service(fs::Files::new("/uploads", "uploads").show_files_listing())
+            .service(fs::Files::new("/static", "static").show_files_listing())
             .configure(config_routes)
             .default_service(web::route().to(|| HttpResponse::NotFound()))
     })

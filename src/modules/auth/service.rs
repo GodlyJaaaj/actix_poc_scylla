@@ -69,7 +69,7 @@ impl AuthService {
         Ok(())
     }
 
-    pub fn request_verification(
+    pub fn request_email_verification(
         conn: &mut PgConnection,
         user_id: Uuid,
         config: &web::Data<Config>,
@@ -156,7 +156,7 @@ impl AuthService {
         Ok(())
     }
 
-    pub fn verify(
+    pub fn verify_email(
         conn: &mut PgConnection,
         verify_data: &VerifyQuery,
     ) -> Result<(), Box<dyn Error>> {

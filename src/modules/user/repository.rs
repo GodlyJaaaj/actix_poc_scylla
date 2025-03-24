@@ -42,29 +42,29 @@ impl UserRepository {
             .map_err(|e| e.into())
     }
 
-    pub fn update_profile_image(
+    pub fn update_avatar(
         conn: &mut PgConnection,
         user_id: Uuid,
-        image_url: &str,
+        avatar_url: &str,
     ) -> Result<User, Box<dyn Error>> {
         use crate::schema::users::dsl::*;
 
         diesel::update(users)
             .filter(id.eq(user_id))
             .filter(deleted_at.is_null())
-            .set(image.eq(image_url))
+            .set(avatar.eq(avatar_url))
             .get_result::<User>(conn)
             .map_err(|e| e.into())
     }
 
-    pub fn get_profile_image(
+    pub fn get_avatar(
         conn: &mut PgConnection,
         user_id: Uuid,
     ) -> Result<Option<String>, Box<dyn Error>> {
         use crate::schema::users::dsl::*;
 
         users
-            .select(image)
+            .select(avatar)
             .filter(id.eq(user_id))
             .filter(deleted_at.is_null())
             .first::<Option<String>>(conn)
