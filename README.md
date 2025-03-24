@@ -83,4 +83,12 @@ password = "your-password"
 tls_mode = "opportunistic"
 email_from = "noreply@example.com"
 frontend_url = "http://localhost:8080"
+
+[file_storage]
+upload_dir = "./static/uploads"
+max_size = 5242880  # 5MB
+allowed_types = ["image/jpeg", "image/png", "image/gif"]
+
+[crypto]
+master_key = "your-very-very-secure-master-key-for-encryption"
 ```
